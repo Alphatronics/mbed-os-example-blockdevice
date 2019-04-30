@@ -18,22 +18,66 @@
 #include <algorithm>
 
 // Block devices
-#include "SPIFBlockDevice.h"
-#include "DataFlashBlockDevice.h"
 #include "SDBlockDevice.h"
-#include "HeapBlockDevice.h"
+
+
+
+////////////// binbeat
+//#define BINBEAT_V10
+#define BINBEAT_V12
+
+DigitalOut enableDebugPortRX(PB_15, 0); //enable RX on debug port
+DigitalOut debugPortForceOff(PD_10, 1); // uses inverse logic!
+DigitalOut debugPortForceOn(PD_11, 1);
+DigitalOut disableVc(PC_6, 0);  //enable vcontrolled
+DigitalOut enable3v3(PG_1, 1);
+PwmOut buzzer(PF_7); //we're using the buzzer as audio feedback whenever a BLE connection is ready or lost
+DigitalOut resetBLE(RST_BLE, 1);
+
+#ifdef BINBEAT_V10
+DigitalOut enable5v(PB_1, 1);
+#endif // BINBEAT_V10
+#ifdef BINBEAT_V12
+DigitalOut enable5v(PA_1, 1);
+#endif // BINBEAT_V12
+
+void powerup(void) {
+    wait_ms(10);
+    printf("Initializing board\r\n");
+    wait_ms(1000);
+    resetBLE = 0;
+    printf("Board ready\r\n");
+}
+
+void buzzzz()
+{
+    buzzer.period(1/(float)2050); //xx seconds period
+	buzzer = 0.1; //duty cycle, relative to period
+}
+void mute()
+{
+    buzzer = 0;
+}
+void beep()
+{
+    buzzzz();
+    wait_ms(100);
+    mute();
+}
+///
 
 
 // Physical block device, can be any device that supports the BlockDevice API
-SPIFBlockDevice bd(
-        MBED_CONF_SPIF_DRIVER_SPI_MOSI,
-        MBED_CONF_SPIF_DRIVER_SPI_MISO,
-        MBED_CONF_SPIF_DRIVER_SPI_CLK,
-        MBED_CONF_SPIF_DRIVER_SPI_CS);
+SDBlockDevice bd(
+        MBED_CONF_SD_SPI_MOSI,
+        MBED_CONF_SD_SPI_MISO,
+        MBED_CONF_SD_SPI_CLK,
+        MBED_CONF_SD_SPI_CS);
 
 
 // Entry point for the example
 int main() {
+    powerup();
     printf("--- Mbed OS block device example ---\n");
 
     // Initialize the block device
